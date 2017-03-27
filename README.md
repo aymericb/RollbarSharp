@@ -130,15 +130,11 @@ You'll need to add the [NLog.RollbarSharp](https://github.com/mroach/NLog.Rollba
 
 ## Building
 
-I'm using [ScriptCs](http://scriptcs.net/) for managing the build process.
+Download and install [Visual Studio 2017](https://www.visualstudio.com/).
 
-To build go to **build** folder and then run this command:
+For running the tests install [NUnit 2 Test Adapter](https://marketplace.visualstudio.com/items?itemName=NUnitDevelopers.NUnitTestAdapter)
 
-```
-scriptcs -script build.csx
-```
-
-After that, upload new **RollbarSharp.{version}.nupkg** to nuget.
+TODO: No idea how **RollbarSharp.{version}.nupkg** is created.
 
 ## TODO
 
