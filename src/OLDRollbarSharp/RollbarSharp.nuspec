@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>$id$</id>
+        <version>$version$</version>
+        <title>$title$</title>
+        <authors>Michael Roach,Patrick Wyatt,Alberto Monteiro,richardversluis</authors>
+        <owners>Michael Roach</owners>
+        <licenseUrl>https://github.com/mroach/RollbarSharp/blob/master/LICENSE.txt</licenseUrl>
+        <projectUrl>https://github.com/mroach/rollbarsharp</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>$description$</description>
+        <releaseNotes>https://github.com/mroach/RollbarSharp/releases/tag/$version$</releaseNotes>
+        <language>en-US</language>
+        <tags>rollbar</tags>
+    </metadata>
+</package>
