@@ -12,8 +12,7 @@ namespace RollbarSharp.Builders
         /// <returns></returns>
         public static NotifierModel CreateFromAssemblyInfo()
         {
-            var ai = Assembly.GetAssembly(typeof(NotifierModel)).GetName();
-
+            var ai = typeof(NotifierModel).GetTypeInfo().Assembly.GetName();
             return new NotifierModel(ai.Name, ai.Version.ToString());
         }
     }

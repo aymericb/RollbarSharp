@@ -3,7 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using RollbarSharp.Serialization;
 
 namespace RollbarSharp.Builders
@@ -51,8 +51,9 @@ namespace RollbarSharp.Builders
         /// </summary>
         /// <param name="level"></param>
         /// <param name="body"></param>
+        /// <param name="request"></param>
         /// <returns></returns>
-        protected DataModel Create(string level, BodyModel body)
+        protected DataModel Create(string level, BodyModel body, HttpRequest request=null)
         {
             var model = new DataModel(level, body);
 
@@ -66,57 +67,25 @@ namespace RollbarSharp.Builders
 
             model.Notifier = NotifierModelBuilder.CreateFromAssemblyInfo();
 
-            var currentHttpRequest = GetCurrentHttpRequest();
-
-            if (currentHttpRequest == null)
+            if (request == null)
             {
-                model.Request = new RequestModel();
                 model.Server = new ServerModel();
-
-                //Obtain person information on non-hosted environment only
-                model.Person = System.Web.Hosting.HostingEnvironment.IsHosted
-                                ? new PersonModel()
-                                : PersonModelBuilder.CreateFromEnvironment();
+                model.Server.Machine = Environment.MachineName;
             }
             else
             {
-                model.Request = RequestModelBuilder.CreateFromHttpRequest(currentHttpRequest, HttpContext.Current.Session, Configuration.ScrubParams);
-                model.Server = ServerModelBuilder.CreateFromHttpRequest(currentHttpRequest);
-                model.Person = PersonModelBuilder.CreateFromHttpRequest(currentHttpRequest);                
+                model.Request = RequestModelBuilder.CreateFromHttpRequest(request, Configuration.ScrubParams);
+                model.Server = ServerModelBuilder.CreateFromHttpRequest(request);
+                model.Person = PersonModelBuilder.CreateFromHttpRequest(request);                
             }
 
             model.Server.GitSha = Configuration.GitSha;
-            
+            // TODO: model.Server.CodeVersion = Configuration.CodeVersion;
+
             return model;
         }
 
-        /// <summary>
-        /// Returns the current HttpRequest. If not available, returns null
-        /// </summary>
-        /// <returns></returns>
-        private static HttpRequest GetCurrentHttpRequest()
-        {
-            var cx = HttpContext.Current;
-            HttpRequest req = null;
-            
-            if (cx != null)
-            {
-                
-                //In the Application_Start HttpContext.Request is not available. 
-                //Instead of HttpContext.Request returning null, it throws an exception. So we swallow the exception here.
-                try
-                {
-                    req = cx.Request;
-                }
-                catch (HttpException)
-                {
 
-                }
-
-            }
-
-            return req;
-        }
 
         /// <summary>
         /// Current UTC date time as a UNIX timestamp
@@ -128,6 +97,8 @@ namespace RollbarSharp.Builders
             return (DateTime.UtcNow - epoch).TotalSeconds;
         }
 
+        // FIXME
+#if false
         public static string FingerprintHash(params object[] fields)
         {
             return FingerprintHash(string.Join(",", fields));
@@ -148,5 +119,6 @@ namespace RollbarSharp.Builders
                 return BitConverter.ToString(hash).Replace("-", string.Empty);
             }
         }
+#endif
     }
 }

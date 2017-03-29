@@ -1,5 +1,4 @@
-﻿using System.Configuration;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace RollbarSharp
 {
@@ -132,11 +131,18 @@ namespace RollbarSharp
             AccessToken = accessToken;
             CodeVersion = DefaultCodeVersion;
             Environment = DefaultEnvironment;
-            Platform = System.Environment.OSVersion.ToString();
-            Framework = ".NET " + System.Environment.Version;
+            Platform = System.Runtime.InteropServices.RuntimeInformation.OSDescription.TrimEnd();
+            Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
             Language = DefaultLanguage;
             ScrubParams = DefaultScrubParams;
         }
+
+        // FIXME
+        public static Configuration CreateFromAppConfig()
+        {
+            return new Configuration("no token");
+        }
+#if false
 
         /// <summary>
         /// Creates a <see cref="Configuration"/>, reading values from App/Web.config
@@ -178,5 +184,6 @@ namespace RollbarSharp
             var setting = ConfigurationManager.AppSettings[name];
             return string.IsNullOrEmpty(setting) ? fallback : setting;
         }
+#endif
     }
 }

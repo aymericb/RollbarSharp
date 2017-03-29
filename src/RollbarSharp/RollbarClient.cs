@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RollbarSharp.Builders;
 using RollbarSharp.Serialization;
+using System.Net.Http;
 
 namespace RollbarSharp
 {
@@ -43,6 +44,9 @@ namespace RollbarSharp
         /// Fires when we've received a response from Rollbar
         /// </summary>
         public event RequestCompletedEventHandler RequestCompleted;
+
+        // Use same HttpClient instance for all requests (see https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/)
+        private HttpClient httpClient = new HttpClient();
 
         public RollbarClient(Configuration configuration)
         {
@@ -225,69 +229,27 @@ namespace RollbarSharp
 
         protected Task HttpPost(string payload, object userParam)
         {
-            return Task.Factory.StartNew(() => HttpPostAsync(payload, userParam));
+            return Task.Factory.StartNew(async () => await HttpPostAsync(payload, userParam));
         }
 
-        protected void HttpPostAsync(string payload, object userParam)
+        protected async Task HttpPostAsync(string payload, object userParam)
         {
-            // convert the json payload to bytes for transmission
-            var payloadBytes = Encoding.GetEncoding(Configuration.Encoding).GetBytes(payload);
-
-            var request = (HttpWebRequest) WebRequest.Create(Configuration.Endpoint);
-            request.ContentType = "application/json";
-            request.Method = "POST";
-            request.ContentLength = payloadBytes.Length;
-
             OnRequestStarting(payload, userParam);
 
-            // we need to wrap GetRequestStream() in a try block
-            // if the endpoint is unreachable, that exception gets thrown here
             try
             {
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(payloadBytes, 0, payloadBytes.Length);
-                    stream.Close();
-                }
-            }
-            catch (Exception ex)
-            {
-                OnRequestCompleted(new Result(0, ex.Message, userParam));
-                return;
-            }
+                var payloadBytes = Encoding.UTF8.GetBytes(payload);
+                var httpResponse = await httpClient.PostAsync(this.Configuration.Endpoint, new ByteArrayContent(payloadBytes));
+                var response = await httpResponse.Content.ReadAsStringAsync();
 
-            // attempt to parse the response. wrap GetResponse() in a try block
-            // since WebRequest throws exceptions for HTTP error status codes
-            WebResponse response;
-
-            try
-            {
-                response = request.GetResponse();
+                OnRequestCompleted(new Result((int)httpResponse.StatusCode, response, userParam));
             }
-            catch (WebException ex)
+            catch (Exception err)
             {
-                if (ex.Response == null)
-                {
-                    var failMsg = string.Format("Request failed. Status: {0}. Message: {1}",
-                                                ex.Status, ex.Message);
-                    OnRequestCompleted(new Result(0, failMsg, userParam));
-                }
-                else
-                {
-                    OnRequestCompleted(ex.Response, userParam);
-                }
-                
-                return;
+                OnRequestCompleted(new Result(0, err.Message, userParam));
             }
-            catch (Exception ex)
-            {
-                OnRequestCompleted(new Result(0, ex.Message, userParam));
-                return;
-            }
-
-            OnRequestCompleted(response, userParam);
         }
-
+        
         protected void OnRequestStarting(string payload, object userParam)
         {
             if (RequestStarting == null)

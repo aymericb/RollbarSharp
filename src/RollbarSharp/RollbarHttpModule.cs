@@ -1,8 +1,10 @@
 ﻿using System;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace RollbarSharp
 {
+// TODO: Create middleware? https://docs.microsoft.com/en-us/aspnet/core/migration/http-modules
+#if false
     public class RollbarHttpModule : IHttpModule
     {
         public void Init(HttpApplication context)
@@ -26,4 +28,5 @@ namespace RollbarSharp
         }
 
     }
+#endif 
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.SessionState;
+using Microsoft.AspNetCore.Http;
 using RollbarSharp.Serialization;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace RollbarSharp.Builders
 {
@@ -14,39 +14,26 @@ namespace RollbarSharp.Builders
         /// Copies over: URL, HTTP method, HTTP headers, query string params, POST params, user IP, route params
         /// </summary>
         /// <param name="request"></param>
-        /// <param name="session"></param>
         /// <param name="scrubParams"></param>
         /// <returns></returns>
-        public static RequestModel CreateFromHttpRequest(HttpRequest request, HttpSessionState session, string[] scrubParams = null)
+        public static RequestModel CreateFromHttpRequest(HttpRequest request, string[] scrubParams = null)
         {
             var m = new RequestModel();
 
-            m.Url = request.Url.ToString();
-            m.Method = request.HttpMethod;
-            m.Headers = request.Headers.ToDictionary();
-            m.Session = session.ToDictionary();
-
-            m.QueryStringParameters = request.QueryString.ToDictionary();
-            m.PostParameters = request.Unvalidated.Form.ToDictionary();
-
-            // add posted files to the post collection
-            try
-            {
-                if (request.Files.Count > 0)
-                    foreach (var file in request.Files.Describe())
-                        m.PostParameters.Add(file.Key, "FILE: " + file.Value);
-            }
-            catch (HttpException)
-            {
-                // Files from request could not be read here because they are streamed
-                // and have been read earlier by e.g. WCF Rest Service or Open RIA Services
-            }
+            m.Url = request.GetEncodedUrl();
+            m.Method = request.Method;
+            m.Headers = request.Headers.ToDictionary(kvp => kvp.Key, kvp => string.Join(",", kvp.Value.ToArray()));
+            m.Session = request.HttpContext.Session.Keys.ToDictionary(key => key, key => request.HttpContext.Session.GetString(key));
+            
+            m.QueryStringParameters = request.Query.ToDictionary(kvp => kvp.Key, kvp => string.Join(",", kvp.Value.ToArray()));
+            m.PostParameters = request.HasFormContentType ? request.Form.ToDictionary(kvp => kvp.Key, kvp => string.Join(",", kvp.Value.ToArray())) : null;
 
             // if the X-Forwarded-For header exists, use that as the user's IP.
             // that will be the true remote IP of a user behind a proxy server or load balancer
-            m.UserIp = IpFromXForwardedFor(request) ?? request.UserHostAddress;
+            m.UserIp = IpFromXForwardedFor(request) ?? request.HttpContext.Connection.RemoteIpAddress.ToString();
 
-            m.Parameters = request.RequestContext.RouteData.Values.ToDictionary(v => v.Key, v => v.Describe());
+            // FIXME
+            // m.Parameters = request.HttpContext.RouteData.Values.ToDictionary(v => v.Key, v => v.Describe());
 
             if (scrubParams != null)
             {
@@ -67,7 +54,7 @@ namespace RollbarSharp.Builders
             var forwardedFor = request.Headers["X-Forwarded-For"];
             if (!string.IsNullOrEmpty(forwardedFor) && forwardedFor.Contains(","))
             {
-                forwardedFor = forwardedFor.Split(',').Last().Trim();
+                forwardedFor = forwardedFor.ToString().Split(',').Last().Trim();
             }
             return forwardedFor;
         }
@@ -88,7 +75,7 @@ namespace RollbarSharp.Builders
                 return dict;
 
             var itemsToUpdate = dict.Keys
-                                    .Where(k => scrubParams.Contains(k, StringComparer.InvariantCultureIgnoreCase))
+                                    .Where(k => scrubParams.Contains(k, StringComparer.OrdinalIgnoreCase))
                                     .ToArray();
 
             if (itemsToUpdate.Any())

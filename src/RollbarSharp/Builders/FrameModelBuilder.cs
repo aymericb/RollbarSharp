@@ -37,8 +37,8 @@ namespace RollbarSharp.Builders
                 if (lineNumber == 0)
                     lineNumber = frame.GetILOffset();
 
-                if (lineNumber == -1)
-                    lineNumber = frame.GetNativeOffset();
+                //if (lineNumber == -1)
+                //    lineNumber = frame.GetNativeOffset();
 
                 // line numbers less than 0 are not accepted
                 if (lineNumber < 0)
@@ -49,6 +49,8 @@ namespace RollbarSharp.Builders
                 //At least on Mono 4.2.1: on reflection call frame.GetMethod() can be null
                 if (method != null)
                 {
+// FIXME
+#if false
                     // file names aren't always available, so use the type name instead, if possible
                     if (string.IsNullOrEmpty(fileName))
                     {
@@ -56,6 +58,7 @@ namespace RollbarSharp.Builders
 	                                   ? method.ReflectedType.FullName
 	                                   : "(unknown)";
                     }
+#endif
 									
                     methodName = method.Name;
 

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Web;
+using Microsoft.AspNetCore.Http;
 using RollbarSharp.Serialization;
 
 namespace RollbarSharp.Builders
@@ -14,20 +14,17 @@ namespace RollbarSharp.Builders
         /// <returns></returns>
         public static ServerModel CreateFromHttpRequest(HttpRequest request)
         {
-            var host = request.ServerVariables.Get("HTTP_HOST");
-
-            if (string.IsNullOrEmpty(host))
-                host = request.ServerVariables.Get("SERVER_NAME");
-
-            var root = request.ServerVariables.Get("APPL_PHYSICAL_PATH");
-
-            if (string.IsNullOrEmpty(root))
-                root = HttpRuntime.AppDomainAppPath ?? Environment.CurrentDirectory;
+            var host = request.Host.ToString();
+            
+            // FIXME var root = request.ServerVariables.Get("APPL_PHYSICAL_PATH");
+            // See https://blog.mariusschulz.com/2016/05/22/getting-the-web-root-path-and-the-content-root-path-in-asp-net-core
 
             var machine = Environment.MachineName;
-            var software = request.ServerVariables["SERVER_SOFTWARE"];
 
-            return new ServerModel { Host = host, Root = root, Machine = machine, Software = software };
+            return new ServerModel {
+                Host = host,
+                Machine = machine,
+            };
         }
     }
 }

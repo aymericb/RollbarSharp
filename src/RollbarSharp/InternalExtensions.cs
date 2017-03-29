@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Web;
-using System.Web.SessionState;
 
 namespace RollbarSharp
 {
@@ -22,6 +20,9 @@ namespace RollbarSharp
             return col.AllKeys.Where(key => key != null).ToDictionary(key => key, key => col[key]);
         }
 
+        // TODO: Migrate session state
+#if false
+
         /// <summary>
         /// Convert the objects in a session dictionary to a readable string dictionary
         /// </summary>
@@ -36,30 +37,8 @@ namespace RollbarSharp
                           .Where(key => key != null)
                           .ToDictionary(key => key, key => session[key].Describe());
         }
+#endif
 
-        /// <summary>
-        /// Create a dictionary describing the files posted.
-        /// The key is the form field name, value the file name, mime type, and size in bytes.
-        /// </summary>
-        /// <param name="files"></param>
-        /// <returns></returns>
-        public static IDictionary<string, string> Describe(this HttpFileCollection files)
-        {
-            return files.AllKeys.ToDictionary(k => k, k => files[k].Describe());
-        }
-
-        /// <summary>
-        /// For uploaded files, build a string containing the file name, mime type, and size
-        /// </summary>
-        /// <param name="file"></param>
-        /// <returns></returns>
-        public static string Describe(this HttpPostedFile file)
-        {
-            if (file.ContentLength == 0 && string.IsNullOrEmpty(file.FileName))
-                return "[empty]";
-
-            return string.Format("{0} ({1}, {2} bytes)", file.FileName, file.ContentType, file.ContentLength);
-        }
 
         /// <summary>
         /// Convert an unknown object into a readable string
@@ -79,8 +58,9 @@ namespace RollbarSharp
             if (type == typeof(string))
                 return obj.ToString();
 
-            if (type.IsValueType)
-                return obj.ToString();
+//          FIXME
+//            if (type.IsValueType)
+//                return obj.ToString();
 
             if (type.IsArray)
             {
